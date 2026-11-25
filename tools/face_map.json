@@ -1,0 +1,289 @@
+[
+  {
+    "name": "薇薇",
+    "grade": "SSS7",
+    "faceName": "AE86_1",
+    "faceIndex": 0,
+    "source": "薇薇（管理员，故事的主人公）.jpg"
+  },
+  {
+    "name": "无所谓了啊",
+    "grade": "A5",
+    "faceName": "AE86_1",
+    "faceIndex": 1,
+    "source": "无所谓了啊（管理员）.jpg"
+  },
+  {
+    "name": "皮老智",
+    "grade": "A8",
+    "faceName": "AE86_1",
+    "faceIndex": 2,
+    "source": "皮老智.jpg"
+  },
+  {
+    "name": "狗妹",
+    "grade": "A7",
+    "faceName": "AE86_1",
+    "faceIndex": 3,
+    "source": "狗妹.jpg"
+  },
+  {
+    "name": "小小薇",
+    "grade": "A6",
+    "faceName": "AE86_1",
+    "faceIndex": 4,
+    "source": "小小薇.jpg"
+  },
+  {
+    "name": "阿文",
+    "grade": "B10",
+    "faceName": "AE86_1",
+    "faceIndex": 5,
+    "source": "小马宝莉衣上绣（阿文）.jpg"
+  },
+  {
+    "name": "花咲",
+    "grade": "B9",
+    "faceName": "AE86_1",
+    "faceIndex": 6,
+    "source": "花が咲く.jpg"
+  },
+  {
+    "name": "天辽阔",
+    "grade": "B9",
+    "faceName": "AE86_1",
+    "faceIndex": 7,
+    "source": "天辽阔.jpg"
+  },
+  {
+    "name": "橙子",
+    "grade": "B8",
+    "faceName": "AE86_2",
+    "faceIndex": 0,
+    "source": "橙子.jpg"
+  },
+  {
+    "name": "⑨",
+    "grade": "B8",
+    "faceName": "AE86_2",
+    "faceIndex": 1,
+    "source": "⑨.jpg"
+  },
+  {
+    "name": "薰衣草",
+    "grade": "B8",
+    "faceName": "AE86_2",
+    "faceIndex": 2,
+    "source": "薰衣草.jpg"
+  },
+  {
+    "name": "灵游",
+    "grade": "B7",
+    "faceName": "AE86_2",
+    "faceIndex": 3,
+    "source": "灵游.jpg"
+  },
+  {
+    "name": "久远崎彩祸",
+    "grade": "B7",
+    "faceName": "AE86_2",
+    "faceIndex": 4,
+    "source": "久远崎彩祸.jpg"
+  },
+  {
+    "name": "篮子",
+    "grade": "B7",
+    "faceName": "AE86_2",
+    "faceIndex": 5,
+    "source": "篮子.jpg"
+  },
+  {
+    "name": "码字姬",
+    "grade": "B6",
+    "faceName": "AE86_2",
+    "faceIndex": 6,
+    "source": "码字姬.jpg"
+  },
+  {
+    "name": "青花灯影stella",
+    "grade": "B6",
+    "faceName": "AE86_2",
+    "faceIndex": 7,
+    "source": "青花灯影stella.jpg"
+  },
+  {
+    "name": "黄狐狸",
+    "grade": "B5",
+    "faceName": "AE86_3",
+    "faceIndex": 0,
+    "source": "黄狐狸.jpg"
+  },
+  {
+    "name": "白柚",
+    "grade": "B4",
+    "faceName": "AE86_3",
+    "faceIndex": 1,
+    "source": "白袖.jpg"
+  },
+  {
+    "name": "鱼鱼",
+    "grade": "B3",
+    "faceName": "AE86_3",
+    "faceIndex": 2,
+    "source": "鱼鱼.jpg"
+  },
+  {
+    "name": "小冰",
+    "grade": "B3",
+    "faceName": "AE86_3",
+    "faceIndex": 3,
+    "source": "小冰（群主）.jpg"
+  },
+  {
+    "name": "白羽",
+    "grade": "B2",
+    "faceName": "AE86_3",
+    "faceIndex": 4,
+    "source": "白羽（管理员）.jpg"
+  },
+  {
+    "name": "白白",
+    "grade": "B2",
+    "faceName": "AE86_3",
+    "faceIndex": 5,
+    "source": "白白.jpg"
+  },
+  {
+    "name": "阿百",
+    "grade": "B2",
+    "faceName": "AE86_3",
+    "faceIndex": 6,
+    "source": "阿百（管理员）.jpg"
+  },
+  {
+    "name": "时间の文",
+    "grade": "B2",
+    "faceName": "AE86_3",
+    "faceIndex": 7,
+    "source": "时间の文（管理员）.jpg"
+  },
+  {
+    "name": "喵神",
+    "grade": "B1",
+    "faceName": "AE86_4",
+    "faceIndex": 0,
+    "source": "喵神.jpg"
+  },
+  {
+    "name": "三七",
+    "grade": "B1",
+    "faceName": "AE86_4",
+    "faceIndex": 1,
+    "source": "三七.jpg"
+  },
+  {
+    "name": "基世界人",
+    "grade": "C7",
+    "faceName": "AE86_4",
+    "faceIndex": 2,
+    "source": "基世界人.jpg"
+  },
+  {
+    "name": "十三",
+    "grade": "C6",
+    "faceName": "AE86_4",
+    "faceIndex": 3,
+    "source": "十三.jpg"
+  },
+  {
+    "name": "鬼狐",
+    "grade": "C5",
+    "faceName": "AE86_4",
+    "faceIndex": 4,
+    "source": "喜欢涩涩的鬼狐.jpg"
+  },
+  {
+    "name": "咸鱼",
+    "grade": "C5",
+    "faceName": "AE86_4",
+    "faceIndex": 5,
+    "source": "咸鱼.jpg"
+  },
+  {
+    "name": "晚儿",
+    "grade": "C4",
+    "faceName": "AE86_4",
+    "faceIndex": 6,
+    "source": "晚儿.jpg"
+  },
+  {
+    "name": "殇",
+    "grade": "C4",
+    "faceName": "AE86_4",
+    "faceIndex": 7,
+    "source": "殇.jpg"
+  },
+  {
+    "name": "猹",
+    "grade": "C3",
+    "faceName": "AE86_5",
+    "faceIndex": 0,
+    "source": "只偷保熟的瓜的猹.jpg"
+  },
+  {
+    "name": "初雪",
+    "grade": "C3",
+    "faceName": "AE86_5",
+    "faceIndex": 1,
+    "source": "初雪.jpg"
+  },
+  {
+    "name": "星璇猫猫",
+    "grade": "C2",
+    "faceName": "AE86_5",
+    "faceIndex": 2,
+    "source": "星璇猫猫.jpg"
+  },
+  {
+    "name": "明月光",
+    "grade": "C2",
+    "faceName": "AE86_5",
+    "faceIndex": 3,
+    "source": "明月光（管理员）.jpg"
+  },
+  {
+    "name": "水榕茜",
+    "grade": "F10",
+    "faceName": "AE86_5",
+    "faceIndex": 4,
+    "source": "水榕茜.jpg"
+  },
+  {
+    "name": "汐之宫花见",
+    "grade": "F7",
+    "faceName": "AE86_5",
+    "faceIndex": 5,
+    "source": "汐之宫花见.jpg"
+  },
+  {
+    "name": "cardio",
+    "grade": "F6",
+    "faceName": "AE86_5",
+    "faceIndex": 6,
+    "source": "cardio.jpg"
+  },
+  {
+    "name": "夜夜",
+    "grade": "F5",
+    "faceName": "AE86_5",
+    "faceIndex": 7,
+    "source": "夜夜.png"
+  },
+  {
+    "name": "のの",
+    "grade": "F5",
+    "faceName": "AE86_6",
+    "faceIndex": 0,
+    "source": "のの.png"
+  }
+]
