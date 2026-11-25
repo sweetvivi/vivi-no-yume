@@ -1,0 +1,5 @@
+﻿# RPG Maker MZ 备份
+*.bak
+*.tmp
+node_modules/
+out/

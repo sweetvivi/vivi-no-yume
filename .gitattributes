@@ -1,0 +1,5 @@
+﻿data/*.json text eol=lf
+img/** binary
+audio/** binary
+*.png binary
+*.ogg binary
