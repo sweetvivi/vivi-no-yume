@@ -9,13 +9,34 @@
  *
  * 技能 / 物品注释标签
  * --------------------------------------------------------------------------
- *   <grab>        命中薇薇 → 触发 QTE（被抓，正常速度）
+ *   <grab>        命中薇薇 → 触发 QTE（回避判定）
  *   <lewd:N>      命中薇薇 → 色情条 +N
  *   <restraint:N> 命中薇薇 → 束缚等级直接设为 N
  *   <selfunbind>  自己脱缚 → 触发高速 QTE，成功束缚 -1
  *   <assist>      队友辅助解缚 → 下一次自己脱缚 QTE 的判定区间 +10px
  *   <unbindall>   万能钥匙 → 解除全部束缚
  *   <cleanse>     净化 → 战斗内只解异常状态，不解祝化
+ *
+ * 文案标签（都可选，不写就用默认）
+ * --------------------------------------------------------------------------
+ *   <okmsg:……>     QTE 成功（回避）时显示
+ *   <fail1:……>     QTE 失败、束缚升到 Lv1（手）时显示
+ *   <fail2:……>     同上，Lv2（腿）
+ *   <fail3:……>     同上，Lv3（嘴）
+ *   <fail4:……>     同上，Lv4（眼）
+ *   <fail5:……>     同上，Lv5（完全束缚）
+ *   <unbindok:……>  自脱缚成功
+ *   <unbindfail:……> 自脱缚失败
+ *
+ * 默认文案
+ * --------------------------------------------------------------------------
+ *   okmsg     → 「薇薇 回避了这次攻击。」
+ *   fail1..5  → 「薇薇 的手/腿/嘴/眼睛 被……！」「薇薇 被彻底束缚住了……」
+ *   unbindok  → 「薇薇 挣开了一层束缚。」
+ *   unbindfail→ 「薇薇 没能挣脱，束缚还在。」
+ *
+ * 注意：技能 message1 是「发起攻击的提示」，命中与否都会显示。
+ *       回避 / 被束缚的文案由 QTE 判定后追加。
  *
  * 状态 ID
  * --------------------------------------------------------------------------
@@ -206,13 +227,14 @@
             return speed;
         },
 
-        startQte(mode) {
+        startQte(mode, meta) {
             mode = mode || "grab";
             const a = this.actor();
             if (!a || !a.isAlive()) return;
             const assist = mode === "selfunbind" && this.assistBonus > 0;
             this.qte = {
                 mode,
+                meta: meta || {},
                 assist,
                 pos: 0,
                 dir: 1,
@@ -249,32 +271,50 @@
             }
         },
 
+        /** 失败时按新束缚等级取文案：<fail1> 手 / <fail2> 腿 / <fail3> 嘴 / <fail4> 眼 / <fail5> 完全 */
+        failMessage(meta, level) {
+            const key = "fail" + Math.min(level, CFG.restraintMax);
+            if (meta && meta[key]) return meta[key];
+            const name = this.actor() ? this.actor().name() : "薇薇";
+            const fallback = {
+                1: `${name} 的手被束缚住了！`,
+                2: `${name} 的腿被束缚住了！`,
+                3: `${name} 的嘴被堵上了，无法吟唱！`,
+                4: `${name} 的眼睛被遮住了！`,
+                5: `${name} 被彻底束缚住了……`,
+            };
+            return fallback[Math.min(level, CFG.restraintMax)];
+        },
+
         judgeQte(success) {
             const q = this.qte;
             if (!q) return;
             this.qte = null;
             this._hudDirty = true;
             const a = this.actor();
+            const meta = q.meta || {};
+            const name = a ? a.name() : "薇薇";
 
             if (q.mode === "selfunbind") {
                 this.assistBonus = 0;
                 if (success) {
                     this.setRestraint(this.restraint() - 1);
-                    this.log("挣脱了一层束缚。");
+                    this.log(meta.unbindok || `${name} 挣开了一层束缚。`);
                 } else {
-                    this.log("没能挣脱，束缚还在。");
+                    this.log(meta.unbindfail || `${name} 没能挣脱，束缚还在。`);
                 }
                 return;
             }
 
-            // grab
-            if (a && a.isStateAffected(CFG.stateGrab)) a.removeState(CFG.stateGrab);
+            // grab：成功 = 回避，失败 = 束缚等级 +1
             if (success) {
+                if (a && a.isStateAffected(CFG.stateGrab)) a.removeState(CFG.stateGrab);
                 if (a) a.gainTp(20);
-                this.log("挣脱了束缚！");
+                this.log(meta.okmsg || `${name} 回避了这次攻击。`);
             } else {
-                this.setRestraint(this.restraint() + 1);
-                this.log("没能挣脱，被缠得更紧了……");
+                const next = Math.min(this.restraint() + 1, CFG.restraintMax);
+                this.setRestraint(next);
+                this.log(this.failMessage(meta, next));
             }
         },
 
@@ -461,8 +501,8 @@
         }
         if (!target.result().isHit()) return;
 
-        if (meta.grab) AE86.pendingQte = { mode: "grab" };
-        if (meta.selfunbind) AE86.pendingQte = { mode: "selfunbind" };
+        if (meta.grab) AE86.pendingQte = { mode: "grab", meta };
+        if (meta.selfunbind) AE86.pendingQte = { mode: "selfunbind", meta };
         if (meta.lewd !== undefined) AE86.addLewd(meta.lewd);
         if (meta.restraint !== undefined) AE86.setRestraint(Number(meta.restraint));
     };
@@ -492,9 +532,9 @@
     BattleManager.update = function (timeActive) {
         if (AE86.qte) return;
         if (AE86.pendingQte && !this.isBusy()) {
-            const mode = AE86.pendingQte.mode;
+            const { mode, meta } = AE86.pendingQte;
             AE86.pendingQte = null;
-            AE86.startQte(mode);
+            AE86.startQte(mode, meta);
             return;
         }
         _BattleManager_update.call(this, timeActive);
