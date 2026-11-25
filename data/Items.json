@@ -1,1 +1,1 @@
-[null]
+[null,{"name":"万能钥匙","description":"能打开任何锁的钥匙。立即解除全部束缚。极难获得。","iconIndex":77,"itypeId":1,"scope":7,"occasion":0,"speed":0,"successRate":100,"repeats":1,"tpGain":0,"hitType":0,"animationId":0,"price":0,"consumable":true,"damage":{"type":0,"elementId":0,"formula":"0","variance":20,"critical":false},"effects":[],"note":"<unbindall>","id":1}]

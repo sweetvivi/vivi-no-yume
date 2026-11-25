@@ -1,27 +1,32 @@
 /*:
  * @target MZ
- * @plugindesc AE86 核心系统：法师/魔剑士形态切换、束缚、QTE、色情条
+ * @plugindesc AE86 核心系统：形态切换、束缚、QTE、色情条
  * @author AE86
  * @help
  * ==========================================================================
  * AE86 核心系统
  * ==========================================================================
  *
- * 数据库约定
+ * 技能 / 物品注释标签
  * --------------------------------------------------------------------------
- * 技能注释：
- *   <grab>        命中薇薇时触发 QTE；QTE 失败则束缚等级 +1
- *   <lewd:N>      命中薇薇时色情条 +N
- *   <restraint:N> 命中薇薇时把束缚等级直接设为 N
+ *   <grab>        命中薇薇 → 触发 QTE（被抓，正常速度）
+ *   <lewd:N>      命中薇薇 → 色情条 +N
+ *   <restraint:N> 命中薇薇 → 束缚等级直接设为 N
+ *   <selfunbind>  自己脱缚 → 触发高速 QTE，成功束缚 -1
+ *   <assist>      队友辅助解缚 → 下一次自己脱缚 QTE 的判定区间 +10px
+ *   <unbindall>   万能钥匙 → 解除全部束缚
+ *   <cleanse>     净化 → 战斗内只解异常状态，不解祝化
  *
- * 状态 ID：
- *    4 魔剑士形态    5 束缚·手    6 束缚·腿    7 束缚·口    8 束缚·目
- *    9 被抓         10 发情      11 敏感      12 媚药      13 高潮
- *   14 祝化         15 祝化·深
+ * 状态 ID
+ * --------------------------------------------------------------------------
+ *    4 魔剑士形态（3 回合）   5 束缚·手   6 束缚·腿   7 束缚·口
+ *    8 束缚·目               9 被抓      10 发情      11 敏感
+ *   12 媚药                 13 高潮      14 祝化      15 祝化·深
  *
- * 变量：
+ * 变量
+ * --------------------------------------------------------------------------
  *   10 = 色情条（0-100）
- *   11 = 束缚等级（0-5，只读镜像，给事件判断用）
+ *   11 = 束缚等级（0-5）
  *
  * 束缚等级效果
  * --------------------------------------------------------------------------
@@ -32,11 +37,18 @@
  *   Lv4 目被遮   → QTE 条难以看清
  *   Lv5 完全束缚 → 战败（HP 归零）
  *
- * 形态
+ * QTE 判定区间
  * --------------------------------------------------------------------------
- *   默认法师形态：ATK ×0.35（近战极弱），MAT 正常
- *   魔剑士形态  ：ATK ×2.0
- *   用技能「剑心·转」（消耗 TP）切换
+ *   法师 96px / 魔剑士 150px
+ *   色情条每 1 点 −0.5px
+ *   束缚每级 −14px
+ *   队友辅助 +10px
+ *   下限 10px（能看见，但极短）
+ *
+ * QTE 速度
+ * --------------------------------------------------------------------------
+ *   被抓（grab）    ：基础 7 + 色情条×0.06 + 束缚×1.5
+ *   自己脱缚        ：上式的 2~5 倍（束缚 Lv1=2x，Lv5=5x）
  */
 
 (() => {
@@ -78,19 +90,23 @@
             barY: 404,
             baseZone: 96,
             swordZone: 150,
-            minZone: 28,
+            minZone: 10,
+            zonePerLewd: 0.5,
+            zonePerRestraint: 14,
+            assistBonus: 10,
             frames: 180,
             baseSpeed: 7,
+            speedPerLewd: 0.06,
+            speedPerRestraint: 1.5,
+            selfMulMin: 2,
+            selfMulMax: 5,
         },
     };
 
-    // ------------------------------------------------------------------
-    // 核心对象
-    // ------------------------------------------------------------------
-
     const AE86 = {
         qte: null,
-        pendingQte: false,
+        pendingQte: null, // { mode: 'grab' | 'selfunbind' }
+        assistBonus: 0,
         _hudDirty: true,
 
         actor() {
@@ -105,10 +121,10 @@
             return $gameVariables.value(CFG.varLewd) || 0;
         },
 
-        /** 战斗开始 / 结束时清空状态 */
         reset() {
             this.qte = null;
-            this.pendingQte = false;
+            this.pendingQte = null;
+            this.assistBonus = 0;
             $gameVariables.setValue(CFG.varLewd, 0);
             this.setRestraint(0, true);
             this._hudDirty = true;
@@ -132,6 +148,9 @@
                         a.removeState(sid);
                     }
                 }
+                if (n < CFG.restraintMax && a.isStateAffected(CFG.stateGrab)) {
+                    a.removeState(CFG.stateGrab);
+                }
                 if (n >= CFG.restraintMax && a.isAlive()) {
                     a.setHp(0);
                 }
@@ -139,7 +158,6 @@
             if (!silent) this._hudDirty = true;
         },
 
-        /** 色情条增加；满了触发高潮并回落到 30 */
         addLewd(amount) {
             const a = this.actor();
             if (!a) return;
@@ -159,29 +177,49 @@
 
         // ---------------- QTE ----------------
 
-        zoneWidth() {
+        zoneWidth(assist) {
             const a = this.actor();
             const sword = a && a.isStateAffected(CFG.stateForm);
-            let w = sword ? CFG.qte.swordZone : CFG.qte.baseZone;
-            w -= this.lewd() * 0.35;
-            w -= this.restraint() * 14;
-            return Math.max(CFG.qte.minZone, Math.round(w));
+            const q = CFG.qte;
+            let w = sword ? q.swordZone : q.baseZone;
+            w -= this.lewd() * q.zonePerLewd;
+            w -= this.restraint() * q.zonePerRestraint;
+            if (assist) w += q.assistBonus;
+            return Math.max(q.minZone, Math.round(w));
         },
 
-        markerSpeed() {
-            return CFG.qte.baseSpeed + this.lewd() * 0.06 + this.restraint() * 1.5;
+        /** 自脱缚速度倍率：束缚 Lv1 = 2 倍，Lv5 = 5 倍 */
+        selfUnbindMultiplier() {
+            const lv = Math.max(1, this.restraint());
+            const q = CFG.qte;
+            const t = (lv - 1) / (CFG.restraintMax - 1);
+            return q.selfMulMin + (q.selfMulMax - q.selfMulMin) * t;
         },
 
-        startQte() {
+        markerSpeed(mode) {
+            const q = CFG.qte;
+            let speed =
+                q.baseSpeed +
+                this.lewd() * q.speedPerLewd +
+                this.restraint() * q.speedPerRestraint;
+            if (mode === "selfunbind") speed *= this.selfUnbindMultiplier();
+            return speed;
+        },
+
+        startQte(mode) {
+            mode = mode || "grab";
             const a = this.actor();
             if (!a || !a.isAlive()) return;
+            const assist = mode === "selfunbind" && this.assistBonus > 0;
             this.qte = {
+                mode,
+                assist,
                 pos: 0,
                 dir: 1,
                 frames: 0,
                 limit: CFG.qte.frames,
-                zone: this.zoneWidth(),
-                speed: this.markerSpeed(),
+                zone: this.zoneWidth(assist),
+                speed: this.markerSpeed(mode),
             };
             this._hudDirty = true;
         },
@@ -212,9 +250,24 @@
         },
 
         judgeQte(success) {
-            if (!this.qte) return;
+            const q = this.qte;
+            if (!q) return;
             this.qte = null;
+            this._hudDirty = true;
             const a = this.actor();
+
+            if (q.mode === "selfunbind") {
+                this.assistBonus = 0;
+                if (success) {
+                    this.setRestraint(this.restraint() - 1);
+                    this.log("挣脱了一层束缚。");
+                } else {
+                    this.log("没能挣脱，束缚还在。");
+                }
+                return;
+            }
+
+            // grab
             if (a && a.isStateAffected(CFG.stateGrab)) a.removeState(CFG.stateGrab);
             if (success) {
                 if (a) a.gainTp(20);
@@ -223,7 +276,6 @@
                 this.setRestraint(this.restraint() + 1);
                 this.log("没能挣脱，被缠得更紧了……");
             }
-            this._hudDirty = true;
         },
 
         log(text) {
@@ -265,6 +317,12 @@
             bmp.fillRect(barX, barY, barW, 12, "rgba(0,0,0,0.65)");
             const fill = Math.round((barW * lewd) / CFG.lewdMax);
             if (fill > 0) bmp.fillRect(barX, barY, fill, 12, "#d2557a");
+
+            if (this.assistBonus > 0) {
+                bmp.fontSize = 18;
+                bmp.textColor = "#9fe6b0";
+                bmp.drawText("队友已就位（区间 +10）", right - 300, 92, 300, 24, "right");
+            }
         },
 
         drawQte(bmp) {
@@ -278,8 +336,21 @@
             bmp.fillRect(x - 4, y - 4, W + 8, H + 8, "rgba(0,0,0,0.8)");
             bmp.fillRect(x, y, W, H, "rgba(40,40,48,0.95)");
 
+            // 判定区间：区间很小时画成一排小竖条，保证看得见
             const zx = x + W / 2 - q.zone / 2;
-            bmp.fillRect(zx, y, q.zone, H, blind ? "rgba(90,200,120,0.22)" : "#3fae6a");
+            const zoneColor = blind
+                ? "rgba(90,200,120,0.25)"
+                : q.mode === "selfunbind"
+                  ? "#e0a53f"
+                  : "#3fae6a";
+            if (q.zone <= 24) {
+                const step = q.zone / 4;
+                for (let i = 0; i < 4; i++) {
+                    bmp.fillRect(zx + i * step, y + 3, Math.max(1, step - 2), H - 6, zoneColor);
+                }
+            } else {
+                bmp.fillRect(zx, y, q.zone, H, zoneColor);
+            }
 
             bmp.fillRect(x, y, W, 2, "#ffffff");
             bmp.fillRect(x, y + H - 2, W, 2, "#ffffff");
@@ -291,7 +362,14 @@
             bmp.textColor = "#ffffff";
             bmp.outlineColor = "rgba(0,0,0,0.85)";
             bmp.outlineWidth = 4;
-            const hint = blind ? "视线被遮住了……" : "按 OK 挣脱！";
+            let hint;
+            if (blind) {
+                hint = "视线被遮住了……";
+            } else if (q.mode === "selfunbind") {
+                hint = q.assist ? "队友帮忙——按 OK 挣脱！" : "自己挣脱——按 OK！";
+            } else {
+                hint = "按 OK 挣脱！";
+            }
             bmp.drawText(hint, x, y - 44, W, 30, "center");
         },
     };
@@ -299,7 +377,7 @@
     window.AE86 = AE86;
 
     // ------------------------------------------------------------------
-    // 钩子：形态（ATK 倍率）
+    // 形态（ATK 倍率）
     // ------------------------------------------------------------------
 
     const _Game_Actor_param = Game_Actor.prototype.param;
@@ -315,14 +393,25 @@
     };
 
     // ------------------------------------------------------------------
-    // 钩子：束缚限制
+    // 束缚限制
     // ------------------------------------------------------------------
 
     const _Game_Actor_meetsSkillConditions = Game_Actor.prototype.meetsSkillConditions;
     Game_Actor.prototype.meetsSkillConditions = function (skill) {
         if (!_Game_Actor_meetsSkillConditions.call(this, skill)) return false;
-        if (this.actorId() !== CFG.actorId) return true;
+        const meta = (skill && skill.meta) || {};
         const lv = AE86.restraint();
+
+        // 自己脱缚：只有薇薇、且被束缚时才能用
+        if (meta.selfunbind) {
+            return this.actorId() === CFG.actorId && lv >= 1;
+        }
+        // 队友辅助：只有别的角色、且薇薇被束缚时才能用
+        if (meta.assist) {
+            return this.actorId() !== CFG.actorId && lv >= 1;
+        }
+
+        if (this.actorId() !== CFG.actorId) return true;
         if (lv >= 1) {
             if (skill.id === CFG.skillAttack) return false;
             if (skill.id === CFG.skillFormSwitch) return false;
@@ -335,6 +424,8 @@
     Game_Actor.prototype.meetsItemConditions = function (item) {
         if (!_Game_Actor_meetsItemConditions.call(this, item)) return false;
         if (this.actorId() !== CFG.actorId) return true;
+        // 万能钥匙任何时候都能用
+        if (item.meta && item.meta.unbindall) return true;
         return AE86.restraint() < 1;
     };
 
@@ -345,7 +436,7 @@
     };
 
     // ------------------------------------------------------------------
-    // 钩子：技能命中 → QTE / 色情条 / 束缚
+    // 技能 / 物品效果
     // ------------------------------------------------------------------
 
     const _Game_Action_apply = Game_Action.prototype.apply;
@@ -355,16 +446,40 @@
         if (!item || !item.meta) return;
         if (!target.isActor || !target.isActor()) return;
         if (target.actorId() !== CFG.actorId) return;
+        const meta = item.meta;
+
+        // 万能钥匙：无视命中判定，直接解全部束缚
+        if (meta.unbindall) {
+            AE86.setRestraint(0);
+            return;
+        }
+        // 队友辅助：给下一次自脱缚 +10px
+        if (meta.assist) {
+            AE86.assistBonus = CFG.qte.assistBonus;
+            AE86._hudDirty = true;
+            return;
+        }
         if (!target.result().isHit()) return;
 
-        const meta = item.meta;
-        if (meta.grab) AE86.pendingQte = true;
+        if (meta.grab) AE86.pendingQte = { mode: "grab" };
+        if (meta.selfunbind) AE86.pendingQte = { mode: "selfunbind" };
         if (meta.lewd !== undefined) AE86.addLewd(meta.lewd);
         if (meta.restraint !== undefined) AE86.setRestraint(Number(meta.restraint));
     };
 
+    // 净化：战斗内不允许解除祝化
+    const _Game_Action_itemEffectRemoveState = Game_Action.prototype.itemEffectRemoveState;
+    Game_Action.prototype.itemEffectRemoveState = function (target, effect) {
+        const isCurse = effect.dataId === CFG.stateCurse || effect.dataId === CFG.stateDeepCurse;
+        if (isCurse && $gameParty.inBattle()) {
+            this.makeFailure(target);
+            return;
+        }
+        _Game_Action_itemEffectRemoveState.call(this, target, effect);
+    };
+
     // ------------------------------------------------------------------
-    // 钩子：战斗流程
+    // 战斗流程
     // ------------------------------------------------------------------
 
     const _BattleManager_setup = BattleManager.setup;
@@ -375,17 +490,18 @@
 
     const _BattleManager_update = BattleManager.update;
     BattleManager.update = function (timeActive) {
-        if (AE86.qte) return; // QTE 进行中，战斗暂停
+        if (AE86.qte) return;
         if (AE86.pendingQte && !this.isBusy()) {
-            AE86.pendingQte = false;
-            AE86.startQte();
+            const mode = AE86.pendingQte.mode;
+            AE86.pendingQte = null;
+            AE86.startQte(mode);
             return;
         }
         _BattleManager_update.call(this, timeActive);
     };
 
     // ------------------------------------------------------------------
-    // 钩子：场景（叠加层）
+    // 场景（叠加层）
     // ------------------------------------------------------------------
 
     const _Scene_Battle_create = Scene_Battle.prototype.create;
@@ -405,7 +521,8 @@
     const _Scene_Battle_terminate = Scene_Battle.prototype.terminate;
     Scene_Battle.prototype.terminate = function () {
         AE86.qte = null;
-        AE86.pendingQte = false;
+        AE86.pendingQte = null;
+        AE86.assistBonus = 0;
         _Scene_Battle_terminate.call(this);
     };
 })();
