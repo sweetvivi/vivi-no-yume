@@ -164,6 +164,7 @@
         },
 
         setRestraint(n, silent) {
+            const prev = this.restraint();
             n = Math.max(0, Math.min(CFG.restraintMax, Math.floor(n)));
             $gameVariables.setValue(CFG.varRestraint, n);
             const a = this.actor();
@@ -189,6 +190,10 @@
                 }
             }
             if (!silent) this._hudDirty = true;
+            // 第一次被束缚时给一句提示，否则玩家不知道有「自己脱缚」
+            if (!silent && prev === 0 && n === 1 && $gameParty.inBattle()) {
+                this.log("（可以用「自己脱缚」挣开。让队友辅助会更简单。）");
+            }
         },
 
         addLewd(amount) {
