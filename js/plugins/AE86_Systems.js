@@ -601,6 +601,20 @@
         return AE86.restraint() < 1;
     };
 
+    // ------------------------------------------------------------------
+    // 女装：只有 note 带 crossdress 的角色能装备 <crossdress> 防具
+    // ------------------------------------------------------------------
+
+    const _Game_Actor_canEquipArmor = Game_Actor.prototype.canEquipArmor;
+    Game_Actor.prototype.canEquipArmor = function (item) {
+        if (!_Game_Actor_canEquipArmor.call(this, item)) return false;
+        if (item && item.meta && item.meta.crossdress) {
+            const actor = $dataActors[this.actorId()];
+            return !!(actor && /crossdress/.test(actor.note || ""));
+        }
+        return true;
+    };
+
     const _BattleManager_canEscape = BattleManager.canEscape;
     BattleManager.canEscape = function () {
         if (AE86.restraint() >= 2) return false;
