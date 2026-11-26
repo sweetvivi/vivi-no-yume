@@ -97,6 +97,7 @@
 
         varLewd: 10,
         varRestraint: 11,
+        varTpHint: 14,
 
         lewdMax: 100,
         lewdAfterOrgasm: 30,
@@ -159,6 +160,7 @@
             this.assistBonus = 0;
             $gameVariables.setValue(CFG.varLewd, 0);
             $gameVariables.setValue(CFG.watcher.varMantra, 0);
+            $gameVariables.setValue(CFG.varTpHint, 0);
             this.setRestraint(0, true);
             this._hudDirty = true;
         },
@@ -380,8 +382,18 @@
             return "none";
         },
 
-        /** 每回合开始：累积真言，满了进神格，否则维持愤怒 */
-        updateWatcherTurn() {
+        /** TP 满了提示一次变身 */
+        updateFormHint() {
+            const a = this.actor();
+            if (!a || !a.isAlive()) return;
+            if (a.isStateAffected(CFG.stateForm)) return;
+            if (a.tp < a.maxTp()) return;
+            if ($gameVariables.value(CFG.varTpHint)) return;
+            $gameVariables.setValue(CFG.varTpHint, 1);
+            this.log("（TP 满了。可以用「剑心·转」切换成魔剑士。）");
+        },
+
+        /** 每回合开始：累积真言，满了进神格，否则维持愤怒 */        updateWatcherTurn() {
             const c = CFG.watcher;
             const w = this.watcherEnemy();
             if (!w || !w.isAlive()) return;
@@ -703,6 +715,7 @@
     BattleManager.startTurn = function () {
         _BattleManager_startTurn.call(this);
         AE86.updateWatcherTurn();
+        AE86.updateFormHint();
     };
 
     const _Game_Action_makeDamageValue = Game_Action.prototype.makeDamageValue;
