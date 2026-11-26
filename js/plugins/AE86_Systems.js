@@ -105,6 +105,17 @@
         atkRateMage: 0.35,
         atkRateSword: 2.0,
 
+        // 终章·观者（致敬杀戮尖塔的姿态机制）
+        watcher: {
+            enemyId: 9,
+            stateWrath: 16,
+            stateDivinity: 17,
+            varMantra: 12,
+            mantraPerTurn: 2,
+            mantraMax: 10,
+            wrathFromTurn: 2,
+        },
+
         qte: {
             barW: 480,
             barH: 26,
@@ -147,6 +158,7 @@
             this.pendingQte = null;
             this.assistBonus = 0;
             $gameVariables.setValue(CFG.varLewd, 0);
+            $gameVariables.setValue(CFG.watcher.varMantra, 0);
             this.setRestraint(0, true);
             this._hudDirty = true;
         },
@@ -337,6 +349,60 @@
             this._hudDirty = false;
         },
 
+        // ---------------- 终章·观者 ----------------
+
+        watcherEnemy() {
+            const c = CFG.watcher;
+            return $gameTroop.members().find((e) => e.enemyId() === c.enemyId) || null;
+        },
+
+        mantra() {
+            return $gameVariables.value(CFG.watcher.varMantra) || 0;
+        },
+
+        setMantra(n) {
+            $gameVariables.setValue(CFG.watcher.varMantra, Math.max(0, Math.floor(n)));
+            this._hudDirty = true;
+        },
+
+        /** 观者当前姿态：'none' | 'wrath' | 'divinity' */
+        watcherStance() {
+            const w = this.watcherEnemy();
+            if (!w || !w.isAlive()) return "none";
+            const c = CFG.watcher;
+            if (w.isStateAffected(c.stateDivinity)) return "divinity";
+            if (w.isStateAffected(c.stateWrath)) return "wrath";
+            return "none";
+        },
+
+        /** 每回合开始：累积真言，满了进神格，否则维持愤怒 */
+        updateWatcherTurn() {
+            const c = CFG.watcher;
+            const w = this.watcherEnemy();
+            if (!w || !w.isAlive()) return;
+
+            // 已在本回合神格里，跳过累积
+            if (w.isStateAffected(c.stateDivinity)) {
+                this._hudDirty = true;
+                return;
+            }
+
+            const turn = $gameTroop.turnCount();
+            const next = this.mantra() + c.mantraPerTurn;
+            this.setMantra(next);
+
+            if (next >= c.mantraMax) {
+                this.setMantra(0);
+                w.addState(c.stateDivinity);
+                if (w.isStateAffected(c.stateWrath)) w.removeState(c.stateWrath);
+                this.log("观者攒满了真言，遁入神格。");
+            } else if (turn >= c.wrathFromTurn && !w.isStateAffected(c.stateWrath)) {
+                w.addState(c.stateWrath);
+                this.log("观者的气息变了——愤怒。");
+            }
+            this._hudDirty = true;
+        },
+
         drawHud(bmp) {
             if (!$gameParty.inBattle()) return;
             const right = Graphics.boxWidth - 20;
@@ -363,6 +429,72 @@
                 bmp.textColor = "#9fe6b0";
                 bmp.drawText("队友已就位（区间 +10）", right - 300, 92, 300, 24, "right");
             }
+
+            this.drawWatcherHud(bmp);
+        },
+
+        /** 左上角：观者的姿态与真言（紫调，致敬杀戮尖塔） */
+        drawWatcherHud(bmp) {
+            const w = this.watcherEnemy();
+            if (!w || !w.isAlive()) return;
+            const c = CFG.watcher;
+            const stance = this.watcherStance();
+
+            const x = 20;
+            const y = 10;
+            bmp.fontFace = $gameSystem.mainFontFace();
+
+            // 底板
+            bmp.fillRect(x - 8, y - 6, 250, 76, "rgba(28,16,44,0.72)");
+            bmp.fillRect(x - 8, y - 6, 250, 2, "#a06ed8");
+            bmp.fillRect(x - 8, y + 68, 250, 2, "#a06ed8");
+
+            bmp.fontSize = 20;
+            bmp.outlineColor = "rgba(0,0,0,0.85)";
+            bmp.outlineWidth = 4;
+
+            const label = {
+                none: "无姿态",
+                wrath: "愤怒",
+                divinity: "神格",
+            }[stance];
+            const color = {
+                none: "#c9b6e8",
+                wrath: "#e0705a",
+                divinity: "#f2d06b",
+            }[stance];
+
+            bmp.textColor = "#c9b6e8";
+            bmp.drawText("观者", x, y, 90, 26);
+            bmp.textColor = color;
+            bmp.drawText(label, x + 60, y, 120, 26);
+
+            if (stance === "wrath") {
+                bmp.fontSize = 15;
+                bmp.textColor = "#e0a090";
+                bmp.drawText("伤害×2 / 受伤×2", x, y + 22, 230, 20);
+            } else if (stance === "divinity") {
+                bmp.fontSize = 15;
+                bmp.textColor = "#f2d06b";
+                bmp.drawText("伤害×3", x, y + 22, 230, 20);
+            } else {
+                bmp.fontSize = 15;
+                bmp.textColor = "#9a86b8";
+                bmp.drawText("评估中", x, y + 22, 230, 20);
+            }
+
+            // 真言条
+            const m = this.mantra();
+            const barW = 200;
+            const barX = x;
+            const barY = y + 44;
+            bmp.fillRect(barX, barY, barW, 10, "rgba(0,0,0,0.6)");
+            const fill = Math.round((barW * m) / c.mantraMax);
+            if (fill > 0) bmp.fillRect(barX, barY, fill, 10, "#a06ed8");
+            bmp.fontSize = 14;
+            bmp.textColor = "#c9b6e8";
+            bmp.outlineWidth = 3;
+            bmp.drawText(`真言 ${m}/${c.mantraMax}`, barX + barW + 6, barY - 4, 90, 20);
         },
 
         drawQte(bmp) {
@@ -538,6 +670,38 @@
             return;
         }
         _BattleManager_update.call(this, timeActive);
+    };
+
+    // ------------------------------------------------------------------
+    // 场景（叠加层）
+    // ------------------------------------------------------------------
+
+    // ------------------------------------------------------------------
+    // 终章·观者：每回合累积真言 / 愤怒时受伤翻倍
+    // ------------------------------------------------------------------
+
+    const _BattleManager_startTurn = BattleManager.startTurn;
+    BattleManager.startTurn = function () {
+        _BattleManager_startTurn.call(this);
+        AE86.updateWatcherTurn();
+    };
+
+    const _Game_Action_makeDamageValue = Game_Action.prototype.makeDamageValue;
+    Game_Action.prototype.makeDamageValue = function (target, critical) {
+        let value = _Game_Action_makeDamageValue.call(this, target, critical);
+        const c = CFG.watcher;
+        if (
+            value > 0 &&
+            target &&
+            typeof target.isEnemy === "function" &&
+            target.isEnemy() &&
+            typeof target.enemyId === "function" &&
+            target.enemyId() === c.enemyId &&
+            target.isStateAffected(c.stateWrath)
+        ) {
+            value = Math.round(value * 2);
+        }
+        return value;
     };
 
     // ------------------------------------------------------------------
