@@ -98,6 +98,7 @@
         varLewd: 10,
         varRestraint: 11,
         varTpHint: 14,
+        varTrapRestraint: 36,
 
         lewdMax: 100,
         lewdAfterOrgasm: 30,
@@ -162,6 +163,13 @@
             $gameVariables.setValue(CFG.watcher.varMantra, 0);
             $gameVariables.setValue(CFG.varTpHint, 0);
             this.setRestraint(0, true);
+            // 陷阱宝箱：战斗开始前设的束缚值，在这里恢复
+            // （reset 在 Scene_Battle.create 里调用，会清掉地图上设的束缚）
+            const trap = $gameVariables.value(CFG.varTrapRestraint);
+            if (trap > 0) {
+                $gameVariables.setValue(CFG.varTrapRestraint, 0);
+                this.setRestraint(trap, true);
+            }
             this._hudDirty = true;
         },
 
