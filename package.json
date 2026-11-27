@@ -1,12 +1,11 @@
 {
-    "name": "rmmz-game",
-    "main": "index.html",
-    "chromium-args": "--force-color-profile=srgb",
-    "window": {
-        "title": "AE86 · 祝化录",
-        "width": 816,
-        "height": 624,
-        "position": "center",
-        "icon": "icon/icon.png"
-    }
+  "name": "vivi-no-yume",
+  "main": "index.html",
+  "window": {
+    "title": "ヴィヴィの夢",
+    "width": 816,
+    "height": 624,
+    "icon": "icon/icon.png"
+  },
+  "chromium-args": "--force-color-profile=srgb"
 }

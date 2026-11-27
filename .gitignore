@@ -1,5 +1,26 @@
-﻿# RPG Maker MZ 备份
+# RPG Maker MZ 备份
 *.bak
 *.tmp
 node_modules/
 out/
+
+# NW.js 运行时（部署文件，不进 git）
+# 这些从 RPG Maker MZ 的 nwjs-win 拷来，让 project1 本身就是可玩目录。
+# 别人 clone 下来后用 MZ 的「部署」或手动补一份即可。
+/Game.exe
+/package.json.bak
+/*.dll
+/*.pak
+/*.dat
+/*.bin
+/*.nexe
+/locales/
+/swiftshader/
+/pnacl/
+/chromedriver.exe
+/nwjc.exe
+/payload.exe
+/notification_helper.exe
+/credits.html
+
+debug.log
