@@ -99,6 +99,7 @@
         varRestraint: 11,
         varTpHint: 14,
         varTrapRestraint: 36,
+        varDefeatText: 37,
 
         lewdMax: 100,
         lewdAfterOrgasm: 30,
@@ -742,6 +743,63 @@
             value = Math.round(value * 2);
         }
         return value;
+    };
+
+    // ------------------------------------------------------------------
+    // 小怪战败提示：按敌人类型显示不同的「被关起来」的描述
+    // Boss 留空（走各自的战败 CG 公共事件）
+    // ------------------------------------------------------------------
+
+    const _BattleManager_processDefeat = BattleManager.processDefeat;
+    BattleManager.processDefeat = function () {
+        try {
+            const troop = $gameTroop;
+            const names =
+                troop && troop.members
+                    ? troop.members().map((e) => e.name()).join(" ")
+                    : "";
+            let text = "";
+            if (/宝箱怪/.test(names)) {
+                text = "被塞回了箱子里。\n盖子合上了。";
+            } else if (/史莱姆|祝·树/.test(names)) {
+                text = "被黏住，拖进了洞窟深处。";
+            } else if (/鸦|无人机|侦察机/.test(names)) {
+                text = "被拎起来，带走了。";
+            } else if (/机械|蜈蚣|守卫机|哨兵/.test(names)) {
+                text = "被关进了一间没有窗的房间。";
+            } else if (/影子|雾怪|雕像/.test(names)) {
+                text = "被拖进了数据的缝隙里。";
+            } else if (/群友/.test(names)) {
+                text = "被按住了。\n它们围了上来。";
+            } else if (/修女/.test(names)) {
+                text = "被按在墙上。\n烛光晃了一下。";
+            } else if (/科学家/.test(names)) {
+                text = "被推进了实验舱。\n舱门合上了。";
+            }
+            $gameVariables.setValue(CFG.varDefeatText, text);
+        } catch (e) {
+            // 静默
+        }
+        _BattleManager_processDefeat.call(this);
+    };
+
+    // Game Over 画面上显示那段文字
+    const _Scene_Gameover_createBackground =
+        Scene_Gameover.prototype.createBackground;
+    Scene_Gameover.prototype.createBackground = function () {
+        _Scene_Gameover_createBackground.call(this);
+        const msg = $gameVariables.value(CFG.varDefeatText);
+        if (!msg) return;
+        $gameVariables.setValue(CFG.varDefeatText, "");
+        const win = new Window_Base(
+            new Rectangle(80, Graphics.height / 2 + 40, Graphics.width - 160, 110)
+        );
+        win.opacity = 0;
+        win.contentsOpacity = 255;
+        win.contents.fontSize = 20;
+        win.changeTextColor("#c8c0d8");
+        win.drawTextEx(String(msg), 0, 0);
+        this.addChild(win);
     };
 
     // ------------------------------------------------------------------
