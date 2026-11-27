@@ -628,16 +628,30 @@
     };
 
     // ------------------------------------------------------------------
-    // 女装：只有 note 带 crossdress 的角色能装备 <crossdress> 防具
+    // 装备性别限制
+    //   <fem>  女性专用（女性 / 女装大佬可穿）
+    //   <masc> 男性专用（中性 / 男性 / 女装大佬可穿）
+    //   无标签 通用
+    // 角色的性质靠 actor.note：gender:f / gender:special-f = 女性
+    //                            crossdress = 两样都行
     // ------------------------------------------------------------------
 
     const _Game_Actor_canEquipArmor = Game_Actor.prototype.canEquipArmor;
     Game_Actor.prototype.canEquipArmor = function (item) {
         if (!_Game_Actor_canEquipArmor.call(this, item)) return false;
-        if (item && item.meta && item.meta.crossdress) {
-            const actor = $dataActors[this.actorId()];
-            return !!(actor && /crossdress/.test(actor.note || ""));
-        }
+        if (!item || !item.meta) return true;
+
+        const actor = $dataActors[this.actorId()];
+        if (!actor) return true;
+        const note = actor.note || "";
+
+        // 女装大佬：没有限制
+        if (/crossdress/.test(note)) return true;
+
+        const isFem = /gender:\s*(special-f|f)\b/.test(note);
+
+        if (item.meta.fem) return isFem;
+        if (item.meta.masc) return !isFem;
         return true;
     };
 
