@@ -1,11 +1,12 @@
 {
-  "name": "vivi-no-yume",
-  "main": "index.html",
-  "window": {
-    "title": "ヴィヴィの夢",
-    "width": 816,
-    "height": 624,
-    "icon": "icon/icon.png"
-  },
-  "chromium-args": "--force-color-profile=srgb"
+    "name": "vivi-no-yume",
+    "main": "index.html",
+    "window": {
+        "title": "ヴィヴィの夢",
+        "width": 816,
+        "height": 624,
+        "icon": "icon/icon.png"
+    },
+    "chromium-args": "--force-color-profile=srgb",
+    "version": "0.1.0"
 }
